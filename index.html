@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RiffyCreates Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">Creator OS</p>
+          <h1>RiffyCreates</h1>
+          <p class="muted">
+            Content planning dashboard for TikTok and Instagram with idea
+            capture, weekly scheduling, and performance tracking.
+          </p>
+        </div>
+
+        <div class="sidebar-group">
+          <h2>Core Pillars</h2>
+          <ul class="pillars-list" id="pillarSummary"></ul>
+        </div>
+
+        <div class="sidebar-group">
+          <h2>Posting Rhythm</h2>
+          <ul class="stack-list">
+            <li>Monday: Review or spoiler-free recommendation</li>
+            <li>Tuesday: News or trailer reaction</li>
+            <li>Thursday: Debate, meme, or trivia</li>
+            <li>Saturday: Watchlist, recap, or reactive post</li>
+          </ul>
+        </div>
+
+        <div class="sidebar-group">
+          <h2>Quick Actions</h2>
+          <div class="button-grid">
+            <button id="exportDataBtn" class="secondary">Export JSON</button>
+            <label class="secondary file-button">
+              Import JSON
+              <input id="importDataInput" type="file" accept="application/json" />
+            </label>
+            <button id="resetDataBtn" class="danger">Reset Seed Data</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <section class="hero">
+          <div>
+            <p class="eyebrow">Dashboard Overview</p>
+            <h2>Scale content without winging it</h2>
+            <p class="muted">
+              This first build is tuned for idea capture, repeatable formats,
+              weekly scheduling, and fast learning loops.
+            </p>
+          </div>
+          <div class="hero-stats" id="heroStats"></div>
+        </section>
+
+        <section class="grid two-up">
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Idea Bank</p>
+                <h3>Content pipeline</h3>
+              </div>
+              <span class="badge" id="ideaCountBadge"></span>
+            </div>
+
+            <form id="ideaForm" class="form-grid">
+              <input type="hidden" id="ideaId" />
+              <label>
+                Idea Title
+                <input id="ideaTitle" required maxlength="100" />
+              </label>
+              <label>
+                Hook
+                <input id="ideaHook" maxlength="120" />
+              </label>
+              <label>
+                Description
+                <textarea id="ideaDescription" rows="3"></textarea>
+              </label>
+              <label>
+                Pillar
+                <select id="ideaPillar"></select>
+              </label>
+              <label>
+                Platform
+                <select id="ideaPlatform"></select>
+              </label>
+              <label>
+                Status
+                <select id="ideaStatus"></select>
+              </label>
+              <label>
+                Format
+                <input id="ideaFormat" placeholder="Reel, reaction, ranking..." />
+              </label>
+              <label>
+                Topic / Franchise
+                <input id="ideaTopic" placeholder="Marvel, HBO, horror..." />
+              </label>
+              <label>
+                Inspiration Link
+                <input id="ideaLink" type="url" placeholder="https://..." />
+              </label>
+              <label>
+                Notes
+                <textarea id="ideaNotes" rows="2"></textarea>
+              </label>
+              <div class="form-actions">
+                <button type="submit">Save Idea</button>
+                <button type="button" id="ideaCancelBtn" class="secondary">
+                  Clear
+                </button>
+              </div>
+            </form>
+
+            <div class="filters">
+              <select id="filterPillar"></select>
+              <select id="filterPlatform"></select>
+              <select id="filterStatus"></select>
+              <input id="filterSearch" placeholder="Search ideas or topics..." />
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Idea</th>
+                    <th>Pillar</th>
+                    <th>Platform</th>
+                    <th>Status</th>
+                    <th>Topic</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ideasTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Calendar</p>
+                <h3>Weekly posting board</h3>
+              </div>
+              <span class="badge">Drag scheduled cards across the week</span>
+            </div>
+
+            <form id="scheduleForm" class="form-grid compact">
+              <input type="hidden" id="scheduleId" />
+              <label>
+                Linked Idea
+                <select id="scheduleIdea"></select>
+              </label>
+              <label>
+                Date
+                <input id="scheduleDate" type="date" required />
+              </label>
+              <label>
+                Time
+                <input id="scheduleTime" type="time" required />
+              </label>
+              <label>
+                Platform
+                <select id="schedulePlatform"></select>
+              </label>
+              <label>
+                Status
+                <select id="scheduleStatus"></select>
+              </label>
+              <label>
+                Notes
+                <input id="scheduleNotes" placeholder="Hook, CTA, angle..." />
+              </label>
+              <div class="form-actions">
+                <button type="submit">Schedule Post</button>
+                <button type="button" id="scheduleCancelBtn" class="secondary">
+                  Clear
+                </button>
+              </div>
+            </form>
+
+            <div id="calendarBoard" class="calendar-board"></div>
+          </article>
+        </section>
+
+        <section class="grid three-up">
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Metrics</p>
+                <h3>Performance snapshot</h3>
+              </div>
+            </div>
+            <div id="metricCards" class="metric-cards"></div>
+            <div class="mini-table" id="topPosts"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Trend Alerts</p>
+                <h3>Reactive opportunities</h3>
+              </div>
+            </div>
+            <div id="trendList" class="stack-list"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Batching Prompts</p>
+                <h3>Production system</h3>
+              </div>
+            </div>
+            <div id="batchingList" class="stack-list"></div>
+          </article>
+        </section>
+
+        <section class="grid three-up">
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">CTA Library</p>
+                <h3>Comment magnets</h3>
+              </div>
+            </div>
+            <div id="ctaList" class="stack-list"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Hashtag Strategy</p>
+                <h3>Keyword buckets</h3>
+              </div>
+            </div>
+            <div id="hashtagList" class="stack-list"></div>
+          </article>
+
+          <article class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Inspiration Feed</p>
+                <h3>Adaptable references</h3>
+              </div>
+            </div>
+            <div id="inspirationList" class="stack-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
