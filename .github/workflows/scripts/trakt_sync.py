@@ -10,7 +10,7 @@ NOTION_API_BASE = "https://api.notion.com/v1"
 TRAKT_CLIENT_ID = os.environ["TRAKT_CLIENT_ID"]
 TRAKT_USERNAME = os.environ.get("TRAKT_USERNAME", "riffymovies")
 NOTION_TOKEN = os.environ["NOTION_TOKEN"].strip()
-NOTION_DATABASE_ID = os.environ["NOTION_DATABASE_ID"].strip()
+NOTION_DATABASE_ID = "5656445a-0f71-4a66-8c31-c05488d447e7"
 
 trakt_headers = {
     "Content-Type": "application/json",
