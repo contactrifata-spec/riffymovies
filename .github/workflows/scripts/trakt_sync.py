@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import httpx
 from datetime import datetime, timezone, timedelta
 
@@ -8,8 +9,8 @@ NOTION_API_BASE = "https://api.notion.com/v1"
 
 TRAKT_CLIENT_ID = os.environ["TRAKT_CLIENT_ID"]
 TRAKT_USERNAME = os.environ.get("TRAKT_USERNAME", "riffymovies")
-NOTION_TOKEN = os.environ["NOTION_TOKEN"]
-NOTION_DATABASE_ID = os.environ["NOTION_DATABASE_ID"]
+NOTION_TOKEN = os.environ["NOTION_TOKEN"].strip()
+NOTION_DATABASE_ID = os.environ["NOTION_DATABASE_ID"].strip()
 
 trakt_headers = {
     "Content-Type": "application/json",
@@ -22,6 +23,24 @@ notion_headers = {
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json",
 }
+
+
+def check_notion_access():
+    print(f"Checking Notion access...")
+    response = httpx.get(
+        f"{NOTION_API_BASE}/databases/{NOTION_DATABASE_ID}",
+        headers=notion_headers,
+    )
+    if response.status_code == 200:
+        db_name = response.json().get("title", [{}])[0].get("plain_text", "(unknown)")
+        print(f"  Connected to: {db_name}")
+        return True
+    else:
+        print(f"  ERROR {response.status_code}: {response.text}")
+        print()
+        print("  Fix: Go to your Watch History database in Notion -> ... -> Connections")
+        print("  and connect the integration whose token matches your NOTION_TOKEN secret.")
+        return False
 
 
 def get_latest_notion_date():
@@ -98,12 +117,17 @@ def create_notion_page(item):
         headers=notion_headers,
         json={"parent": {"database_id": NOTION_DATABASE_ID}, "properties": properties},
     )
-    response.raise_for_status()
+    if not response.is_success:
+        print(f"  FAILED to add {title!r}: {response.status_code} {response.text}")
+        return
     print(f"  + {title}")
 
 
 def main():
     print(f"Syncing Trakt history for @{TRAKT_USERNAME}...")
+
+    if not check_notion_access():
+        sys.exit(1)
 
     latest_date = get_latest_notion_date()
     if latest_date:
