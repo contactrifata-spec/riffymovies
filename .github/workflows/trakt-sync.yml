@@ -26,4 +26,4 @@ jobs:
           TRAKT_USERNAME: ${{ secrets.TRAKT_USERNAME }}
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-        run: python scripts/trakt_sync.py
+        run: python .github/workflows/scripts/trakt_sync.py
