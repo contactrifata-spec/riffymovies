@@ -26,7 +26,7 @@ notion_headers = {
 
 
 def check_notion_access():
-    print(f"Checking Notion access...")
+    print("Checking Notion access...")
     response = httpx.get(
         f"{NOTION_API_BASE}/databases/{NOTION_DATABASE_ID}",
         headers=notion_headers,
@@ -37,10 +37,31 @@ def check_notion_access():
         return True
     else:
         print(f"  ERROR {response.status_code}: {response.text}")
-        print()
-        print("  Fix: Go to your Watch History database in Notion -> ... -> Connections")
-        print("  and connect the integration whose token matches your NOTION_TOKEN secret.")
         return False
+
+
+def get_existing_titles():
+    titles = set()
+    cursor = None
+    while True:
+        body = {"page_size": 100}
+        if cursor:
+            body["start_cursor"] = cursor
+        response = httpx.post(
+            f"{NOTION_API_BASE}/databases/{NOTION_DATABASE_ID}/query",
+            headers=notion_headers,
+            json=body,
+        )
+        response.raise_for_status()
+        data = response.json()
+        for page in data.get("results", []):
+            title_parts = page["properties"].get("Title", {}).get("title", [])
+            if title_parts:
+                titles.add(title_parts[0].get("plain_text", ""))
+        if not data.get("has_more"):
+            break
+        cursor = data.get("next_cursor")
+    return titles
 
 
 def get_latest_notion_date():
@@ -66,7 +87,6 @@ def get_trakt_history(start_at=None):
     params = {"limit": 100, "extended": "full"}
     if start_at:
         params["start_at"] = start_at
-
     response = httpx.get(
         f"{TRAKT_API_BASE}/users/{TRAKT_USERNAME}/history",
         headers=trakt_headers,
@@ -76,41 +96,13 @@ def get_trakt_history(start_at=None):
     return response.json()
 
 
-def create_notion_page(item):
-    item_type = item.get("type")
-    watched_at = item.get("watched_at", "")
-    date_str = watched_at[:10] if watched_at else None
-
-    if item_type == "movie":
-        movie = item["movie"]
-        title = movie["title"]
-        year = movie.get("year", "")
-        properties = {
-            "Title": {"title": [{"text": {"content": f"{title} ({year})" if year else title}}]},
-            "Type": {"select": {"name": "Movie"}},
-            "Content Status": {"select": {"name": "No Ideas Yet"}},
-        }
-
-    elif item_type == "episode":
-        episode = item["episode"]
-        show = item["show"]
-        show_title = show["title"]
-        season = episode.get("season", 0)
-        ep_num = episode.get("number", 0)
-        title = f"{show_title} S{season:02d}E{ep_num:02d}"
-        properties = {
-            "Title": {"title": [{"text": {"content": title}}]},
-            "Show Name": {"rich_text": [{"text": {"content": show_title}}]},
-            "Type": {"select": {"name": "TV Show"}},
-            "Season": {"number": season},
-            "Episode": {"number": ep_num},
-            "Content Status": {"select": {"name": "No Ideas Yet"}},
-        }
-    else:
-        return
-
-    if date_str:
-        properties["Date Watched"] = {"date": {"start": date_str}}
+def create_notion_page(title, item_type, show_name=None):
+    properties = {
+        "Title": {"title": [{"text": {"content": title}}]},
+        "Type": {"select": {"name": item_type}},
+    }
+    if show_name:
+        properties["Show Name"] = {"rich_text": [{"text": {"content": show_name}}]}
 
     response = httpx.post(
         f"{NOTION_API_BASE}/pages",
@@ -119,8 +111,9 @@ def create_notion_page(item):
     )
     if not response.is_success:
         print(f"  FAILED to add {title!r}: {response.status_code} {response.text}")
-        return
+        return False
     print(f"  + {title}")
+    return True
 
 
 def main():
@@ -128,6 +121,9 @@ def main():
 
     if not check_notion_access():
         sys.exit(1)
+
+    existing_titles = get_existing_titles()
+    print(f"Found {len(existing_titles)} existing entries in Notion")
 
     latest_date = get_latest_notion_date()
     if latest_date:
@@ -143,11 +139,36 @@ def main():
         print("Nothing new to sync.")
         return
 
-    print(f"Found {len(history)} new items:")
-    for item in reversed(history):
-        create_notion_page(item)
+    seen_this_run = set()
+    added = 0
+    skipped = 0
 
-    print("Done.")
+    for item in reversed(history):
+        item_type = item.get("type")
+
+        if item_type == "movie":
+            movie = item["movie"]
+            name = movie["title"]
+            year = movie.get("year", "")
+            title = f"{name} ({year})" if year else name
+            if title in existing_titles or title in seen_this_run:
+                skipped += 1
+                continue
+            seen_this_run.add(title)
+            if create_notion_page(title, "Movie"):
+                added += 1
+
+        elif item_type == "episode":
+            show = item["show"]
+            title = show["title"]
+            if title in existing_titles or title in seen_this_run:
+                skipped += 1
+                continue
+            seen_this_run.add(title)
+            if create_notion_page(title, "TV Show", show_name=title):
+                added += 1
+
+    print(f"Done. Added {added}, skipped {skipped} duplicates.")
 
 
 if __name__ == "__main__":
